@@ -12,8 +12,9 @@ class RecaptchaV2 extends StatefulWidget {
   final String pluginURL = "https://recaptcha-flutter-plugin.firebaseapp.com/";
   final RecaptchaV2Controller controller;
 
-  final ValueChanged<bool>? onVerifiedSuccessfully;
+  final ValueChanged<String>? onVerifiedSuccessfully;
   final ValueChanged<String>? onVerifiedError;
+  final bool needVerification;
 
   RecaptchaV2({
     required this.apiKey,
@@ -21,6 +22,7 @@ class RecaptchaV2 extends StatefulWidget {
     required this.controller,
     this.onVerifiedSuccessfully,
     this.onVerifiedError,
+    this.needVerification = true,
   });
 
   @override
@@ -32,23 +34,26 @@ class _RecaptchaV2State extends State<RecaptchaV2> {
   late WebViewController webViewController;
 
   void verifyToken(String token) async {
-    String url = "https://www.google.com/recaptcha/api/siteverify";
-    http.Response response = await http.post(Uri.parse(url), body: {
-      "secret": widget.apiSecret,
-      "response": token,
-    });
+    if(widget.needVerification) {
+      String url = "https://www.google.com/recaptcha/api/siteverify";
+      http.Response response = await http.post(Uri.parse(url), body: {
+        "secret": widget.apiSecret,
+        "response": token,
+      });
 
-    // print("Response status: ${response.statusCode}");
-    // print("Response body: ${response.body}");
+      // print("Response status: ${response.statusCode}");
+      // print("Response body: ${response.body}");
 
-    if (response.statusCode == 200) {
-      dynamic json = jsonDecode(response.body);
-      if (json['success']) {
-        widget.onVerifiedSuccessfully?.call(true);
-      } else {
-        widget.onVerifiedSuccessfully?.call(false);
-        widget.onVerifiedError?.call(json['error-codes'].toString());
+      if (response.statusCode == 200) {
+        dynamic json = jsonDecode(response.body);
+        if (json['success']) {
+          widget.onVerifiedSuccessfully?.call(token);
+        } else {
+          widget.onVerifiedError?.call(json['error-codes'].toString());
+        }
       }
+    } else {
+      widget.onVerifiedSuccessfully?.call(token);
     }
 
     // hide captcha
